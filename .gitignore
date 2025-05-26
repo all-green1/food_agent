@@ -1,0 +1,6 @@
+/target
+.env
+build/
+secrets.json
+token.json
+__pycache__/
