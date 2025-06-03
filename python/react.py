@@ -1,6 +1,9 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from openai import OpenAI
 from dotenv import load_dotenv
-import os
 from utils import add_food
 from food_agent.food_agent import PyCommandHandler
 

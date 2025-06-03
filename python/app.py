@@ -1,6 +1,9 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from openai import OpenAI
 from dotenv import load_dotenv
-import os
 import json
 from react import collect_food_info
 from prompts import conversational_orchestrator_prompt
