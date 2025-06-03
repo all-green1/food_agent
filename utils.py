@@ -2,9 +2,9 @@ from pydantic import BaseModel, Field
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
-from prompts import system_prompt, food_type_prompt, quantity_prompt, stock_date_prompt, expiry_date_prompt, storage_type_prompt
+from prompts import system_prompt, food_type_prompt, quantity_prompt, stock_date_prompt, expiry_date_prompt, storage_type_prompt, food_prompt, assert_food_prompt
 import re
-from food_agent import PyCommandHandler
+from food_agent.food_agent import PyCommandHandler
 
 load_dotenv()
 
@@ -22,6 +22,7 @@ class TypeRequest(BaseModel):
 
 def persistent_querying(list_of_properties:list, base_prompt:str, system_prompt:str) -> str:
     prop = ""
+    response_count = 0
     history = [{"role": "system", "content": system_prompt}]
     while prop not in list_of_properties:
         user_input = input(base_prompt)
@@ -33,6 +34,7 @@ def persistent_querying(list_of_properties:list, base_prompt:str, system_prompt:
         )
         prop = response.output_text.strip().lower()
         history.append({"role": "assistant", "content": response.output_text.strip()})
+        response_count += 1
         
         base_prompt = prop
 
@@ -65,6 +67,7 @@ class add_food():
         return storage_type
 
     def add_new_food(self):
+        name = get_food_name(food_prompt, assert_food_prompt)
         food_type = self.get_food_type()
         food_quantity = get_food_quantity(quantity_prompt)
         stock_date = get_stock_date(stock_date_prompt)
@@ -74,6 +77,7 @@ class add_food():
         try:
             result = self.handler.handle_command(
                 command="add",
+                name=name,
                 stock_date=stock_date,
                 food_type=food_type,
                 storage_type=storage_type,
@@ -91,31 +95,45 @@ class add_food():
         except Exception as e:
             print(f"Error viewing food: {e}")
 
-    def search_food(self):
-        print("\nSearch by:")
-        print("1. Food type")
-        print("2. Storage type")
-        print("3. Expiry date")
-        
-        choice = input("Enter your choice (1-3): ")
-        
+    def search_food(self, query:str, field:str):
         try:
-            if choice == "1":
-                food_type = self.get_food_type()
-                result = self.handler.search_by_type(food_type)
-                print(result)
-            elif choice == "2":
-                storage_type = self.get_storage_type()
-                result = self.handler.search_by_storage(storage_type)
-                print(result)
-            elif choice == "3":
-                date = get_stock_date(stock_date_prompt)
-                result = self.handler.search_by_expiry(date)
-                print(result)
-            else:
-                print("Invalid choice")
+            result = self.handler.advanced_search(query, field)
+            print(result)
         except Exception as e:
             print(f"Error searching food: {e}")
+
+def get_food_name(system_prompt:str, assertion_prompt:str):
+    history = [{"role": "system", "content": system_prompt}]
+    name = None
+
+    while True:
+        init_prompt = "What food do you want me to add?"
+        history.append({"role": "system", "content": init_prompt})
+        user_input = input(init_prompt)
+        history.append({"role": "user", "content": user_input})
+        call_1 = client.responses.create(
+            model="gpt-4o-mini-2024-07-18",
+            input=history,
+            store=False
+        )
+        prop = call_1.output_text.strip().lower()
+
+        validation_prompt = [{"role": "system", "content": assertion_prompt},
+                             {"role": "user", "content": prop}]
+        call_2 = client.responses.create(
+            model="gpt-4o-mini-2024-07-18",
+            input=validation_prompt,
+            store=False
+        )
+        is_valid = call_2.output_text.strip().lower()
+        if is_valid == "yes":
+            name = prop
+            break
+        else:
+            print("That doesn't seem like a valid food. Let's try again.\n")
+
+    return name
+
 
 def get_food_quantity(system_prompt:str):
     pattern = r"\d+(l|g)"
@@ -177,20 +195,21 @@ def get_expiry_date(system_prompt:str):
 # Create an instance of add_food
 add_new_food = add_food()
 
-# Main loop
-while True:
-    funnel = add_new_food.get_funnel()
-    print(funnel)
-    
-    if funnel == "add":
-        add_new_food.add_new_food()
-    elif funnel == "view all":
-        add_new_food.view_all_food()
-    elif funnel == "search":
-        add_new_food.search_food()
-    elif funnel == "exit":
-        print("Goodbye!")
-        break
+if __name__ == "__main__":
+    # Main loop
+    while True:
+        funnel = add_new_food.get_funnel()
+        print(funnel)
+        
+        if funnel == "add":
+            add_new_food.add_new_food()
+        elif funnel == "view all":
+            add_new_food.view_all_food()
+        elif funnel == "search":
+            add_new_food.search_food()
+        elif funnel == "exit":
+            print("Goodbye!")
+            break
 
 # user_prompt = input("What would you like to do today?")
 # completion = client.beta.chat.completions.parse(

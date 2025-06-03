@@ -1,9 +1,7 @@
 setup.py
-./app.py
-./prompts.py
-./utils.py
 food_agent.egg-info/PKG-INFO
 food_agent.egg-info/SOURCES.txt
 food_agent.egg-info/dependency_links.txt
 food_agent.egg-info/not-zip-safe
+food_agent.egg-info/requires.txt
 food_agent.egg-info/top_level.txt

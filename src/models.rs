@@ -92,7 +92,7 @@ impl fmt::Display for MajorNutrient {
 /// Food stock item with different properties
 #[derive(Debug, Clone)]
 pub struct FoodStock {
-    pub index: u32,
+    pub name: String,
     pub stock_date: NaiveDate,
     pub food_type: FoodType,
     pub nutrient: MajorNutrient,
@@ -104,7 +104,7 @@ pub struct FoodStock {
 impl FoodStock {
     /// Creates a new FoodStock instance
     pub fn new(
-        index: u32,
+        name: String,
         stock_date: NaiveDate,
         food_type: FoodType,
         nutrient: MajorNutrient,
@@ -113,7 +113,7 @@ impl FoodStock {
         quantity: Unit,
     ) -> Self {
         Self {
-            index,
+            name,
             stock_date,
             food_type,
             nutrient,
@@ -151,8 +151,8 @@ impl fmt::Display for FoodStock {
             Unit::Litres(l) => format!("{}L", l),
         };
         
-        write!(f, "Food Stock #{}: {} ({}) - Stored: {}, Expires: {}, Storage: {}, Nutrient: {}",
-            self.index,
+        write!(f, "Food Stock: {} - {} ({}) - Stored: {}, Expires: {}, Storage: {}, Nutrient: {}",
+            self.name,
             self.food_type,
             quantity_str,
             self.stock_date,
@@ -161,4 +161,4 @@ impl fmt::Display for FoodStock {
             self.nutrient
         )
     }
-} 
+}

@@ -35,7 +35,7 @@ pub async fn create_calendar_event(food: &FoodStock) -> Result<(), Box<dyn std::
 
     let reminder_date = Utc.from_utc_date(&food.expiry_date).and_hms_opt(9, 0, 0).unwrap();
 
-    let summary = format!("Check your {} before it expires!", food.food_type);
+    let summary = format!("Check your {} before it expires!", food.name);
     let quantity_str = match &food.quantity {
         Unit::Grams(g) => format!("{}g", g),
         Unit::Litres(l) => format!("{}L", l),

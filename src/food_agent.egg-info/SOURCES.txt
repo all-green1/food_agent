@@ -1,6 +1,0 @@
-setup.py
-src/food_agent.egg-info/PKG-INFO
-src/food_agent.egg-info/SOURCES.txt
-src/food_agent.egg-info/dependency_links.txt
-src/food_agent.egg-info/not-zip-safe
-src/food_agent.egg-info/top_level.txt

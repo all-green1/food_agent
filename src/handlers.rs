@@ -2,7 +2,7 @@
 use std::io;
 use chrono::{NaiveDate, Local, Duration};
 use crate::models::{FoodType, Unit, StorageType, MajorNutrient, FoodStock};
-use crate::storage::FoodStorage;
+use crate::storage::FoodDb;
 use crate::reminder::create_calendar_event;
 
 /// Handles user input operations
@@ -37,6 +37,15 @@ impl InputHandler {
             _ => Err("Invalid food type".to_string()),
         }
     }
+    pub fn get_food_name(&self, input: &str) -> Result<String, String> {
+        if input.trim().is_empty() {
+            println!("Invalid input");
+            Err("Input was empty".to_string())
+        } else {
+            Ok(input.to_string())
+        }
+    }
+    
 
     /// Gets a storage type from the user
     pub fn get_storage_type(&self, input: &str) -> Result<StorageType, String> {
@@ -80,15 +89,18 @@ impl CommandHandler {
     /// Handles the add command
     pub async fn handle_add(
         &self, 
-        storage: &mut FoodStorage,
+        name: String,
+        storage: &mut FoodDb,
         stock_date: String,
         food_type: String,
         storage_type: String,
         quantity: String,
         expiry_date: Option<String>
     ) -> Result<bool, String> {
+        println!("DEBUG: handle_add called with name: {}", name);
         println!("\nAdding new food stock...");
         
+        let name = self.input_handler.get_food_name(&name)?;
         let stock_date = self.input_handler.get_date(&stock_date)?;
         let food_type = self.input_handler.get_food_type(&food_type)?;
         let storage_type = self.input_handler.get_storage_type(&storage_type)?;
@@ -152,7 +164,7 @@ impl CommandHandler {
         };
 
         let food_stock = FoodStock::new(
-            storage.next_index(),
+            name,
             stock_date,
             food_type,
             nutrient,
@@ -161,7 +173,9 @@ impl CommandHandler {
             quantity,
         );
 
-        storage.add_food(food_stock.clone());
+        if let Err(e) = storage.add_food(food_stock.clone()) {
+            return Err(e.to_string());
+        }
         
         if let Err(e) = create_calendar_event(&food_stock).await {
             eprintln!("Failed to create calendar event: {}", e);
@@ -172,49 +186,58 @@ impl CommandHandler {
     }
 
     /// Handles the view all command
-    pub fn handle_view_all(&self, storage: &FoodStorage) -> Result<bool, String> {
+    pub fn handle_view_all(&self, storage: &FoodDb) -> Result<bool, String> {
+        println!("DEBUG: handle_view_all called");
         println!("\nCurrent food stocks:");
-        for food in storage.get_all_food() {
-            println!("{:?}", food);
+        match storage.get_all_food() {
+            Ok(foods) => {
+                for food in foods {
+                    println!("{:?}", food);
+                }
+                Ok(true)
+            }
+            Err(e) => {
+                eprintln!("Error retrieving food: {}", e);
+                return Err(e.to_string());
+            }
         }
-        Ok(true)
     }
 
     /// Handles the search command
-    pub fn handle_search(&self, storage: &FoodStorage) -> Result<bool, String> {
-        println!("\nSearch by:");
-        println!("1. Food type");
-        println!("2. Storage type");
-        println!("3. Expiry date");
+    // pub fn handle_search(&self, storage: &FoodStorage) -> Result<bool, String> {
+    //     println!("\nSearch by:");
+    //     println!("1. Food type");
+    //     println!("2. Storage type");
+    //     println!("3. Expiry date");
         
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
+    //     let mut input = String::new();
+    //     io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
         
-        match input.trim() {
-            "1" => {
-                let food_type = self.input_handler.get_food_type(&input)?;
-                let results = storage.search_by_type(&food_type);
-                self.display_search_results(&results);
-            }
-            "2" => {
-                let storage_type = self.input_handler.get_storage_type(&input)?;
-                let results = storage.search_by_storage(&storage_type);
-                self.display_search_results(&results);
-            }
-            "3" => {
-                println!("Enter date to search (today/tomorrow/yesterday/DD-MM-YYYY)");
-                let mut date_input = String::new();
-                io::stdin().read_line(&mut date_input).map_err(|e| e.to_string())?;
-                match storage.search_by_expiry(date_input.trim()) {
-                    Ok(results) => self.display_search_results(&results),
-                    Err(e) => println!("Error: {}", e),
-                }
-            }
-            _ => return Err("Invalid search option".to_string()),
-        }
+    //     match input.trim() {
+    //         "1" => {
+    //             let food_type = self.input_handler.get_food_type(&input)?;
+    //             let results = storage.search_by_type(&food_type);
+    //             self.display_search_results(&results);
+    //         }
+    //         "2" => {
+    //             let storage_type = self.input_handler.get_storage_type(&input)?;
+    //             let results = storage.search_by_storage(&storage_type);
+    //             self.display_search_results(&results);
+    //         }
+    //         "3" => {
+    //             println!("Enter date to search (today/tomorrow/yesterday/DD-MM-YYYY)");
+    //             let mut date_input = String::new();
+    //             io::stdin().read_line(&mut date_input).map_err(|e| e.to_string())?;
+    //             match storage.search_by_expiry(date_input.trim()) {
+    //                 Ok(results) => self.display_search_results(&results),
+    //                 Err(e) => println!("Error: {}", e),
+    //             }
+    //         }
+    //         _ => return Err("Invalid search option".to_string()),
+    //     }
         
-        Ok(true)
-    }
+    //     Ok(true)
+    // }
 
     /// Displays search results
     fn display_search_results(&self, results: &Vec<&FoodStock>) {
@@ -228,4 +251,4 @@ impl CommandHandler {
             println!("{}", stock);
         }
     }
-} 
+}

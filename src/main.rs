@@ -5,14 +5,12 @@ mod storage;
 mod reminder;
 
 use handlers::CommandHandler;
-use storage::FoodStorage;
 
 #[tokio::main]
 async fn main() {
     // println!("Welcome to Food Stock Manager!");
     // println!("I'm your food log assistant. What would you like me to do for you?");
     
-    let mut storage = FoodStorage::new();
     let command_handler = CommandHandler::new();
     
     // loop {
