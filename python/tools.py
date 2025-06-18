@@ -32,6 +32,7 @@ tools = [{
         "strict": True,
         "parameters": {
             "type": "object",
+            "required": [],
             "properties": {},
             "additionalProperties": False
         }
@@ -45,6 +46,7 @@ tools = [{
         "strict": True,
         "parameters": {
             "type": "object",
+            "required": [],
             "properties": {},
             "additionalProperties": False
         }

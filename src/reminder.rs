@@ -7,13 +7,35 @@ use std::path::Path;
 use crate::models::{FoodStock, FoodType, StorageType, Unit, MajorNutrient};
 
 pub async fn create_calendar_event(food: &FoodStock) -> Result<(), Box<dyn std::error::Error>> {
-    // Check if secrets.json exists
-    if !Path::new("secrets.json").exists() {
-        return Err("secrets.json not found. Please download your OAuth 2.0 credentials from Google Cloud Console and save them as 'secrets.json' in the project root.".into());
+    // Debug: Print current working directory
+    if let Ok(current_dir) = std::env::current_dir() {
+        println!("DEBUG: Current working directory: {:?}", current_dir);
     }
+    
+    // Try multiple possible locations for secrets.json
+    let possible_paths = [
+        "secrets.json",           // Current directory
+        "../secrets.json",        // One level up
+        "../../secrets.json",     // Two levels up
+        "./secrets.json",         // Explicit current directory
+    ];
+    
+    let mut secrets_path = None;
+    for path in &possible_paths {
+        println!("DEBUG: Checking for secrets.json at: {}", path);
+        if Path::new(path).exists() {
+            secrets_path = Some(*path);
+            println!("DEBUG: Found secrets.json at: {}", path);
+            break;
+        }
+    }
+    
+    let secrets_path = secrets_path.ok_or_else(|| {
+        format!("secrets.json not found. Searched in: {:?}. Please ensure your OAuth 2.0 credentials are saved as 'secrets.json' in an accessible location.", possible_paths)
+    })?;
 
-    println!("Reading OAuth credentials from secrets.json...");
-    let secret = oauth2::read_application_secret("secrets.json").await?;
+    println!("Reading OAuth credentials from {}...", secrets_path);
+    let secret = oauth2::read_application_secret(secrets_path).await?;
     
     println!("Setting up OAuth2 authentication...");
     let auth = oauth2::InstalledFlowAuthenticator::builder(secret, oauth2::InstalledFlowReturnMethod::HTTPRedirect)
