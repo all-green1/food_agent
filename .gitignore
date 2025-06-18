@@ -4,4 +4,4 @@ build/
 secrets.json
 token.json
 __pycache__/
-food_agent/food_agent_frontend/target/
+frontend/food_agent_frontend/target/
