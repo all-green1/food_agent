@@ -1,9 +1,10 @@
 #![allow(warnings)]
 use std::io;
-use chrono::{NaiveDate, Local, Duration};
+use chrono::{NaiveDate, Local, Duration, Utc};
 use crate::models::{FoodType, Unit, StorageType, MajorNutrient, FoodStock};
 use crate::storage::FoodDb;
-use crate::reminder::create_calendar_event;
+use crate::reminder::{create_calendar_event, create_calendar_event_with_user_token};
+use serde_json::Value;
 
 /// Handles user input operations
 pub struct InputHandler;
@@ -95,7 +96,9 @@ impl CommandHandler {
         food_type: String,
         storage_type: String,
         quantity: String,
-        expiry_date: Option<String>
+        expiry_date: Option<String>,
+        user_id: Option<i32>,
+        google_token: Option<Value>
     ) -> Result<bool, String> {
         println!("DEBUG: handle_add called with name: {}", name);
         println!("\nAdding new food stock...");
@@ -177,11 +180,38 @@ impl CommandHandler {
             return Err(e.to_string());
         }
         
-        if let Err(e) = create_calendar_event(&food_stock).await {
-            eprintln!("Failed to create calendar event: {}", e);
+        // Try to create calendar event if user has Google Calendar connected
+        let calendar_result = if let (Some(uid), Some(token)) = (user_id, google_token) {
+            match create_calendar_event_with_user_token(&food_stock, uid, Some(token)).await {
+                Ok(result) => {
+                    // Check if this is a calendar link message (fallback) or success message
+                    if result.contains("Calendar Reminder Links") {
+                        Some(result)
+                    } else {
+                        // Successful calendar creation
+                        Some("📅 I've also created a calendar reminder for when this food item is approaching its expiry date!".to_string())
+                    }
+                },
+                Err(e) => {
+                    eprintln!("Failed to create calendar event: {}", e);
+                    // Generate calendar links as fallback
+                    Some(create_calendar_event_with_user_token(&food_stock, uid, None).await.unwrap_or_default())
+                }
+            }
+        } else {
+            // No Google Calendar authentication - generate calendar links
+            Some(create_calendar_event_with_user_token(&food_stock, 0, None).await.unwrap_or_default())
+        };
+
+        let mut success_message = "Food stock added successfully!".to_string();
+        if let Some(calendar_msg) = calendar_result {
+            if !calendar_msg.is_empty() {
+                success_message.push_str("\n\n");
+                success_message.push_str(&calendar_msg);
+            }
         }
 
-        println!("Food stock added successfully!");
+        println!("{}", success_message);
         Ok(true)
     }
 

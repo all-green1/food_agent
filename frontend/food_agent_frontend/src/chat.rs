@@ -4,9 +4,15 @@ use leptos_router::hooks::use_navigate;
 use serde::{Deserialize, Serialize};
 use gloo_net::http::{Request, Headers};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{console, window};
+use web_sys::{console, HtmlInputElement, window};
+use serde_json;
+use std::collections::HashMap;
 
-use crate::types::{AuthContext, ChatRequest, ChatResponse, ChatMessage, SessionMessagesResponse};
+use crate::types::{
+    AuthContext, ChatRequest, ChatResponse, SessionMessagesResponse, 
+    GoogleCalendarUrlResponse, GoogleCalendarStatusResponse, GoogleAuthRequest, GoogleAuthResponse,
+    ChatMessage
+};
 
 fn get_current_time() -> String {
     let date = js_sys::Date::new_0();
@@ -330,6 +336,9 @@ pub fn ChatPage() -> impl IntoView {
                     </div>
                 </header>
                 
+                // Google Calendar Integration
+                <GoogleCalendarIntegration />
+                
                 // Chat messages area
                 <div 
                     node_ref=messages_container_ref
@@ -630,6 +639,148 @@ fn ChatDisplay(messages: ReadSignal<Vec<ChatMessage>>,
                     None
                 }
             }}
+        </div>
+    }
+}
+
+#[component]
+fn GoogleCalendarIntegration() -> impl IntoView {
+    let auth_context = expect_context::<RwSignal<AuthContext>>();
+    let (calendar_status, set_calendar_status) = signal(None::<GoogleCalendarStatusResponse>);
+    let (is_loading, set_is_loading) = signal(false);
+    let (show_integration, set_show_integration) = signal(false);
+
+    // Check calendar status on component mount
+    create_effect(move |_| {
+        if let Some(token) = auth_context.get().token {
+            spawn_local(async move {
+                match Request::get("http://localhost:8000/auth/google-calendar-status")
+                    .header("Authorization", &format!("Bearer {}", token))
+                    .send()
+                    .await
+                {
+                    Ok(response) => {
+                        if response.ok() {
+                            if let Ok(status) = response.json::<GoogleCalendarStatusResponse>().await {
+                                set_calendar_status.set(Some(status));
+                            }
+                        }
+                    }
+                    Err(_) => {}
+                }
+            });
+        }
+    });
+
+    let handle_connect_calendar = move |_| {
+        if let Some(token) = auth_context.get().token {
+            set_is_loading.set(true);
+            spawn_local(async move {
+                match Request::get("http://localhost:8000/auth/google-calendar-url")
+                    .header("Authorization", &format!("Bearer {}", token))
+                    .send()
+                    .await
+                {
+                    Ok(response) => {
+                        if response.ok() {
+                            if let Ok(url_response) = response.json::<GoogleCalendarUrlResponse>().await {
+                                // Navigate to Google OAuth in the same window to preserve auth context
+                                if let Some(window) = window() {
+                                    let location = window.location();
+                                    let _ = location.set_href(&url_response.auth_url);
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => {}
+                }
+                set_is_loading.set(false);
+            });
+        }
+    };
+
+    view! {
+        <div style="margin-bottom: 15px;">
+            <button 
+                style="
+                    background: none;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    font-size: 0.9em;
+                    color: #666;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                "
+                on:click=move |_| set_show_integration.update(|show| *show = !*show)
+            >
+                "📅 Calendar Settings"
+                <span style="font-size: 0.8em;">
+                    {move || if show_integration.get() { "▼" } else { "▶" }}
+                </span>
+            </button>
+            
+            {move || show_integration.get().then(|| view! {
+                <div style="
+                    margin-top: 10px;
+                    padding: 15px;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    background: #fafafa;
+                ">
+                    {move || {
+                        if let Some(status) = calendar_status.get() {
+                            if status.is_authenticated {
+                                view! {
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <span style="color: #4CAF50; font-size: 1.2em;">"✓"</span>
+                                            <span style="color: #4CAF50; font-weight: 500;">"Google Calendar Connected"</span>
+                                        </div>
+                                        <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #666;">
+                                            "Calendar reminders will be automatically created when you add food items."
+                                        </p>
+                                    </div>
+                                }.into_any()
+                            } else if !status.is_authenticated {
+                                view! {
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <span style="color: #FF9800; font-size: 1.2em;">"⚠"</span>
+                                            <span style="color: #333; font-weight: 500;">"Google Calendar Not Connected"</span>
+                                        </div>
+                                        <p style="margin: 8px 0 12px 0; font-size: 0.9em; color: #666;">
+                                            "Connect your Google Calendar to automatically create reminders for food expiry dates."
+                                        </p>
+                                        <button
+                                            style="
+                                                background: #4285f4;
+                                                color: white;
+                                                border: none;
+                                                border-radius: 6px;
+                                                padding: 10px 16px;
+                                                cursor: pointer;
+                                                font-size: 0.9em;
+                                                font-weight: 500;
+                                            "
+                                            disabled=move || is_loading.get()
+                                            on:click=handle_connect_calendar
+                                        >
+                                            {move || if is_loading.get() { "Connecting..." } else { "Connect Google Calendar" }}
+                                        </button>
+                                    </div>
+                                }.into_any()
+                            } else {
+                                view! { <div></div> }.into_any()
+                            }
+                        } else {
+                            view! { <div></div> }.into_any()
+                        }
+                    }}
+                </div>
+            })}
         </div>
     }
 }

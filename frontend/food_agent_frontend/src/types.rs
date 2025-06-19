@@ -68,9 +68,9 @@ pub struct ChatRequest {
 pub struct ChatResponse {
     pub response: String,
     pub session_id: String,
-    pub user_id: i32,
 }
 
+// Auth types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
@@ -87,8 +87,8 @@ pub struct LoginResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterRequest {
-    pub email: String,
     pub username: String,
+    pub email: String,
     pub password: String,
 }
 
@@ -98,24 +98,47 @@ pub struct RegisterResponse {
     pub token_type: String,
     pub user_id: i32,
     pub username: String,
-} 
+}
+
+// Session types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionMessage {
+    pub message: String,
+    pub response: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionMessagesResponse {
+    pub messages: Vec<SessionMessage>,
+}
+
+// Google Calendar types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GoogleCalendarUrlResponse {
+    pub auth_url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GoogleCalendarStatusResponse {
+    pub is_authenticated: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GoogleAuthRequest {
+    pub auth_code: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GoogleAuthResponse {
+    pub success: bool,
+    pub message: String,
+}
 
 #[derive(Clone, Debug)]
 pub struct ChatMessage {
     pub content: String,
     pub is_user: bool,
     pub timestamp: String,
-}
-
-// Session messages types
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionMessagesResponse {
-    pub messages: Vec<SessionMessage>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionMessage {
-    pub message: String,
-    pub response: String,
-    pub created_at: String,
 }

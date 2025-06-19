@@ -9,11 +9,13 @@ mod login;
 mod home;
 mod signup;
 mod types;
+mod google_callback;
 
 use chat::ChatPage;
 use login::LoginPage;
 use home::HomePage;
 use signup::SignUp;
+use google_callback::GoogleCallback;
 use types::AuthContext;
 
 // App initialization function
@@ -45,6 +47,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/login") view=LoginPage />
                 <Route path=path!("/register") view=SignUp />
                 <Route path=path!("/chat") view=ChatPage />
+                <Route path=path!("/auth/google-callback") view=GoogleCallback />
             </Routes>
         </Router>
     }

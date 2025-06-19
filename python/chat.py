@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from openai import OpenAI
@@ -17,6 +18,8 @@ handler = PyCommandHandler()
 
 # Store food collection sessions
 food_collection_sessions = {}
+
+
 
 def handle_function_call(function_name, arguments, session_id=None):
     """Handle the execution of called functions"""
@@ -65,25 +68,29 @@ def handle_function_call(function_name, arguments, session_id=None):
         print(f"DEBUG: Exception in handle_function_call: {str(e)}")
         return f" Error executing {function_name}: {str(e)}"
 
-def process_message(user_input, conversation_history=None, session_id=None):
-    """Process a single message and return the response and updated conversation history""" 
-    print(f"DEBUG: process_message called with user_input: '{user_input}', session_id: {session_id}")
-    print(f"DEBUG: Active food collection sessions: {list(food_collection_sessions.keys())}")
+def process_message(user_input, conversation_history=None, session_id=None, user_context=None):
+    """Process user message and return AI response"""
+    print(f"DEBUG: process_message called with session_id: {session_id}")
+    print(f"DEBUG: User context: {user_context}")
     
     if conversation_history is None:
-        conversation_history = [
-            {"role": "system", "content": conversational_orchestrator_prompt}
-        ]
+        conversation_history = [{"role": "system", "content": conversational_orchestrator_prompt}]
     
-    # Check if this is a continuation of food collection
+    # Check if this is a food collection session continuation
     if session_id and session_id in food_collection_sessions:
-        print(f"DEBUG: Continuing food collection for session {session_id}")
-        print(f"DEBUG: User input for food collection: {user_input}")
+        print(f"DEBUG: Found active food collection session for {session_id}")
         
         try:
             # This is a food collection response - process directly
             session_state = food_collection_sessions[session_id]
-            session_state, response, is_complete = collect_food_info(user_input, session_state)
+            
+            # Prepare user context with Google token if available
+            enhanced_user_context = user_context.copy() if user_context else {}
+            if user_context and user_context.get("user_id"):
+                # Get Google token from app.py context (we'll need to pass this)
+                enhanced_user_context["google_token"] = user_context.get("google_token")
+            
+            session_state, response, is_complete = collect_food_info(user_input, session_state, enhanced_user_context)
             
             print(f"DEBUG: collect_food_info returned - response: '{response}', is_complete: {is_complete}")
             
@@ -96,7 +103,10 @@ def process_message(user_input, conversation_history=None, session_id=None):
                 print(f"DEBUG: Food collection completed for session {session_id}")
                 # Clean up completed session
                 del food_collection_sessions[session_id]
-                assistant_response = f" {response}"
+                
+                # The calendar integration is now handled in the Rust backend
+                # It will either create a calendar event or return calendar links
+                assistant_response = response
             else:
                 print(f"DEBUG: Food collection continuing for session {session_id}")
                 # Update session and continue collection

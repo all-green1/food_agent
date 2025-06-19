@@ -36,6 +36,14 @@ pub struct SearchResult {
     pub quantity: String,
 }
 
+impl std::fmt::Display for SearchResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({}): {} stored {}, expires {}", 
+               self.name, self.food_type, self.quantity, 
+               self.storage_type.to_lowercase(), self.expiry_date)
+    }
+}
+
 impl FoodDb {
     pub fn new(config: DbConfig) -> Result<Self, mysql::Error> {
         

@@ -86,7 +86,7 @@ class add_food():
         """
         if step_data is None:
             # Initialize with your original flow
-            return {
+            step_data = {
                 "step": "name",
                 "prompt": "What food do you want me to add?",
                 "session_data": {},
@@ -160,8 +160,7 @@ class add_food():
                 if is_complete:
                     collected["storage_type"] = result
                     # Your original database save logic
-                    db_result = self.handler.handle_command(
-                        command="add",
+                    db_result = self.handler.add_food(
                         name=collected["name"],
                         stock_date=collected["stock_date"],
                         food_type=collected["food_type"],
