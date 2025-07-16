@@ -69,6 +69,16 @@ It complements industry efforts by building behavior change tools at the consume
 - Personal Food insights dashboard
 - Meal Planning
 
+## Contact
+Feel free to reach out if you're interested in:
+- Collaborating on foodtech/AI solutions
+- Using this project in a research or commercial context
+- Just talking shop about agents, LLMs, and structured automation
+
+Jeremiah Akisanya
+LinkedIn: www.linkedin.com/in/jeremiah-akisanya
+Email: akisanyajeremiah@gmail.com
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -89,14 +99,3 @@ cd your_project_name
 poetry install
 # or
 pip install -r requirements.txt
-
-## Contact
-Feel free to reach out if you're interested in:
-- Collaborating on foodtech/AI solutions
-- Using this project in a research or commercial context
-- Just talking shop about agents, LLMs, and structured automation
-
-Jeremiah Akisanya
-LinkedIn: www.linkedin.com/in/jeremiah-akisanya
-Email: akisanyajeremiah@gmail.com
-
